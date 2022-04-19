@@ -1,0 +1,76 @@
+docker cp HIST_PAINEL_COVIDBR_2020_Parte2_06jul2021.csv namenode:/home/
+docker cp HIST_PAINEL_COVIDBR_2021_Parte1_06jul2021.csv namenode:/home/
+docker cp HIST_PAINEL_COVIDBR_2021_Parte2_06jul2021.csv namenode:/home/
+docker cp HIST_PAINEL_COVIDBR_2021_Parte1_06jul2021.csv namenode:/home/
+
+hdfs dfs -mkdir /user/cayo/projeto-final
+hdfs dfs -copyFromLocal /home/*.csv /user/cayo/projeto-final
+
+create database projeto_final;
+
+create table dados_covid(
+regiao string,
+estado string,
+municipio string,
+coduf int,
+codmun int,
+codRegiaoSaude int,
+nomeRegiaoSaude string,
+data date,
+semanaEpi int,
+populacaoTCU2019 int,
+casosAcumulado int,
+casosNovos int,
+obitosAcumulado int,
+obitosNovos int,
+recuperadosnovos int,
+emAcompanhamentoNovos int,
+interiorMetropolitana int)
+row format delimited
+fields terminated by ';'
+lines terminated by '\n'
+stored as textfile
+tblproperties("skip.header.line.count"="1")
+
+load data inpath '/user/cayo/projeto-final' overwrite into table dados_covid;
+
+create table dados_covid_particionada(
+regiao string,
+estado string,
+coduf int,
+codmun int,
+codRegiaoSaude int,
+nomeRegiaoSaude string,
+data date,
+semanaEpi int,
+populacaoTCU2019 int,
+casosAcumulado int,
+casosNovos int,
+obitosAcumulado int,
+obitosNovos int,
+recuperadosnovos int,
+emAcompanhamentoNovos int,
+interiorMetropolitana int)
+partitioned by (municipio string)
+stored as textfile;
+
+INSERT OVERWRITE TABLE dados_covid_particionada PARTITION(municipio) SELECT regiao, 
+       estado,
+       municipio,
+       coduf, 
+       codmun,
+       codregiaosaude,
+       nomeregiaosaude,
+       data,
+       semanaepi,
+       populacaotcu2019,
+       casosacumulado,
+       casosnovos,
+       obitosacumulado,
+       obitosnovos,
+       recuperadosnovos,
+       emacompanhamentonovos,
+       interiormetropolitana
+FROM dados_covid;
+
+
