@@ -73,4 +73,35 @@ INSERT OVERWRITE TABLE dados_covid_particionada PARTITION(municipio) SELECT regi
        interiormetropolitana
 FROM dados_covid;
 
+dados_covid = spark.read.option("sep", ";").option("header", "true").csv("hdfs:///user/cayo/projeto-final")
+
+dados_covid.show(10)
+
+from pyspark.sql.functions import *
+from pyspark.sql.types import FloatType, IntegerType, LongType
+
+dados_covid_view1 = dados_covid.agg(\
+    sum("Recuperadosnovos").cast(LongType()).alias("Casos_recuperados"),\
+    sum("emAcompanhamentoNovos").cast(LongType()).alias("Em_acompanhamento"))
+
+dados_covid_view1.show()
+
+dados_covid_view2 = dados_covid.agg(\
+    sum("casosAcumulado").cast(LongType()).alias("Acumulado"),\
+    sum("casosNovos").cast(LongType()).alias("Casos_novos"),\
+    (format_number(((sum("casosAcumulado").cast(LongType()) * 100000).cast(FloatType()) / sum("populacaoTCU2019").cast(LongType())), 2)).alias("Incidencia"))
+
+dados_covid_view2.show()
+
+dados_covid_view3 = dados_covid.agg(\
+    sum("obitosAcumulado").cast(LongType()).alias("Obitos_acumulado"),\
+    sum("obitosNovos").cast(LongType()).alias("Obitos_novos"),\
+    format_number(((sum("obitosAcumulado").cast(LongType()) * 100) / sum("casosAcumulado").cast(LongType())).cast(FloatType()), 2).alias("Letalidade"),\
+    format_number(((sum("obitosAcumulado").cast(LongType()) * 100000) / sum("populacaoTCU2019").cast(LongType())).cast(FloatType()), 2).alias("Mortalidade"))
+
+dados_covid_view3.show()
+
+dados_covid_view1.write.option('header','true').csv("/user/cayo/projeto-final/data/dados_covid_view1_hive")
+
+dados_covid_view2.write.option('header','true').option("compression", "snappy").parquet("/user/cayo/projeto-final/data/dados_covid_view2_parquet")
 
